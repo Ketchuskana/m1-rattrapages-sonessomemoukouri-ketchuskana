@@ -1,13 +1,7 @@
-import pygame
-import random
+import pygame, random
 
 class Fuel:
-    def __init__(self, x_min, x_max, speed, image):
-        """
-        x_min, x_max : zone horizontale de spawn
-        speed : vitesse de descente
-        image : image du bonus
-        """
+    def __init__(self, x_min, x_max, speed, image, is_gold=False):
         self.img = image
         self.rect = pygame.Rect(
             random.randint(x_min, x_max - self.img.get_width()),
@@ -16,6 +10,7 @@ class Fuel:
             self.img.get_height()
         )
         self.speed = speed
+        self.is_gold = is_gold
 
     def update(self):
         self.rect.y += self.speed

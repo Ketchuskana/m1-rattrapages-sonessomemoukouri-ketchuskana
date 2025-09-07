@@ -34,6 +34,15 @@ for i in range(5):
 fuel_img = pygame.image.load("assets/gasoline.png")
 fuel_img = pygame.transform.scale(fuel_img, (40, 40))
 
+gold_img = pygame.image.load("assets/gasoline-pump.png")
+gold_img = pygame.transform.scale(gold_img, (40, 40))
+
+# Sons
+pygame.mixer.init()
+bonus_sound = pygame.mixer.Sound("assets/gamebonus.mp3")
+crash_sound = pygame.mixer.Sound("assets/carcrash.mp3")
+gold_sound = pygame.mixer.Sound("assets/collect_coins.mp3")
+
 # Score et vies
 score = 0
 lives = 3
@@ -41,59 +50,46 @@ start_time = time.time()
 level = 1
 last_speed_increase = start_time
 obstacle_speed = 5
-
-# Boutons fin de jeu
-def draw_button(text, x, y, w, h, color, hover_color):
-    mouse = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()
-    rect = pygame.Rect(x, y, w, h)
-    if rect.collidepoint(mouse):
-        pygame.draw.rect(screen, hover_color, rect)
-        if click[0]:
-            return True
-    else:
-        pygame.draw.rect(screen, color, rect)
-    label = font.render(text, True, (255,255,255))
-    screen.blit(label, (x + w//2 - label.get_width()//2, y + h//2 - label.get_height()//2))
-    return False
-
-# --- Boucle principale ---
-running = True
 game_over = False
 
+# Boucle principale
+running = True
 while running:
     screen.fill((0,0,0))
     draw_background(screen, WIDTH, HEIGHT)
-
     keys = pygame.key.get_pressed()
 
-    if not game_over:
-        current_time = time.time()
-        elapsed_time = int(current_time - start_time)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == SPAWN_EVENT and not game_over:
+            # Spawn obstacle
+            obstacle_list.append(Obstacle(120, WIDTH-120, obstacle_speed, obstacle_images))
+            # Spawn fuel normal ou gold
+            if random.randint(1,5) == 1:
+                fuel_list.append(Fuel(120, WIDTH-120, 4, gold_img, is_gold=True))
+            else:
+                if random.randint(1,3) == 1:
+                    fuel_list.append(Fuel(120, WIDTH-120, 4, fuel_img))
 
-        # --- Augmentation de vitesse tous les 30s ---
+    if not game_over:
+        # Mouvement joueur
+        player.move(keys, 120, WIDTH-120, 0, HEIGHT)
+        player.draw(screen)
+
+        # Augmentation vitesse tous les 30s
+        current_time = time.time()
         if current_time - last_speed_increase >= 30:
             obstacle_speed += 1
             level += 1
             last_speed_increase = current_time
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == SPAWN_EVENT:
-                obstacle_list.append(Obstacle(120, WIDTH-120, obstacle_speed, obstacle_images))
-                if random.randint(1,3) == 1:
-                    fuel_list.append(Fuel(120, WIDTH-120, 4, fuel_img))
-
-        # Mouvement joueur
-        player.move(keys, 120, WIDTH-120, 0, HEIGHT)
-        player.draw(screen)
 
         # Déplacement obstacles
         for obs in obstacle_list[:]:
             obs.update()
             if obs.rect.colliderect(player.hitbox):
                 lives -= 1
+                if crash_sound: crash_sound.play()
                 obstacle_list.remove(obs)
             elif obs.rect.top > HEIGHT:
                 obstacle_list.remove(obs)
@@ -104,54 +100,54 @@ while running:
         for f in fuel_list[:]:
             f.update()
             if f.rect.colliderect(player.hitbox):
-                score += 10
+                if f.is_gold:
+                    score += 20
+                    if gold_sound: gold_sound.play()
+                else:
+                    score += 10
+                    if bonus_sound: bonus_sound.play()
                 fuel_list.remove(f)
             elif f.rect.top > HEIGHT:
                 fuel_list.remove(f)
             else:
                 f.draw(screen)
 
-        # Texte score, vies, temps et niveau
+        # Texte
+        elapsed_time = int(current_time - start_time)
         screen.blit(font.render(f"Score: {score}", True, (255,255,255)), (10,10))
         screen.blit(font.render(f"Vies: {lives}", True, (255,255,255)), (10,40))
         screen.blit(font.render(f"Temps: {elapsed_time}s", True, (255,255,255)), (10,70))
         screen.blit(font.render(f"Level: {level}", True, (255,255,255)), (WIDTH-120,10))
 
-        # Vérifier Game Over
         if lives <= 0:
             game_over = True
 
     else:
         # --- Game Over ---
         screen.blit(big_font.render("GAME OVER", True, (255,50,50)), (WIDTH//2-130, HEIGHT//2-50))
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        mouse_pos = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()
+        # Rejouer
+        replay_rect = pygame.Rect(WIDTH//2-100, HEIGHT//2+10, 90, 40)
+        quit_rect = pygame.Rect(WIDTH//2+10, HEIGHT//2+10, 90, 40)
+        pygame.draw.rect(screen, (0,100,200), replay_rect)
+        screen.blit(font.render("Rejouer", True, (255,255,255)), (WIDTH//2-90, HEIGHT//2+18))
+        pygame.draw.rect(screen, (200,0,0), quit_rect)
+        screen.blit(font.render("Quitter", True, (255,255,255)), (WIDTH//2+20, HEIGHT//2+18))
+        if click[0]:
+            if replay_rect.collidepoint(mouse_pos):
+                # Reset complet
+                score = 0
+                lives = 3
+                level = 1
+                obstacle_speed = 5
+                obstacle_list.clear()
+                fuel_list.clear()
+                start_time = time.time()
+                last_speed_increase = start_time
+                game_over = False
+            elif quit_rect.collidepoint(mouse_pos):
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_pos = pygame.mouse.get_pos()
-                # Vérifier Rejouer
-                if pygame.Rect(WIDTH//2-100, HEIGHT//2+10, 90, 40).collidepoint(mouse_pos):
-                    # Reset complet
-                    score = 0
-                    lives = 3
-                    level = 1
-                    obstacle_speed = 5
-                    obstacle_list.clear()
-                    fuel_list.clear()
-                    start_time = time.time()
-                    last_speed_increase = start_time
-                    game_over = False
-                # Vérifier Quitter
-                elif pygame.Rect(WIDTH//2+10, HEIGHT//2+10, 90, 40).collidepoint(mouse_pos):
-                    running = False
-
-        # Dessiner boutons (juste visuel)
-        pygame.draw.rect(screen, (0,100,200), (WIDTH//2-100, HEIGHT//2+10, 90, 40))
-        screen.blit(font.render("Rejouer", True, (255,255,255)), (WIDTH//2-100+10, HEIGHT//2+15))
-        pygame.draw.rect(screen, (200,0,0), (WIDTH//2+10, HEIGHT//2+10, 90, 40))
-        screen.blit(font.render("Quitter", True, (255,255,255)), (WIDTH//2+10+10, HEIGHT//2+15))
-
 
     pygame.display.flip()
     clock.tick(60)
