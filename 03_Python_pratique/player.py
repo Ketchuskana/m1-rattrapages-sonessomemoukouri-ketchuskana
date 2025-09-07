@@ -10,6 +10,9 @@ class Player:
         self.rect = pygame.Rect(x, y, 50, 80)
         self.speed = speed
 
+        # Hitbox réduite pour collisions
+        self.hitbox = self.rect.inflate(-10, -10)
+
     def move(self, keys, left_limit, right_limit, top_limit, bottom_limit):
         if keys[pygame.K_LEFT] and self.rect.left > left_limit:
             self.rect.x -= self.speed
@@ -19,6 +22,9 @@ class Player:
             self.rect.y -= self.speed
         if keys[pygame.K_DOWN] and self.rect.bottom < bottom_limit:
             self.rect.y += self.speed
+
+        # Mettre à jour la hitbox après déplacement
+        self.hitbox.topleft = self.rect.topleft
 
     def draw(self, screen):
         if self.img:
