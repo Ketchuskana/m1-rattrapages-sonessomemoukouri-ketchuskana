@@ -30,7 +30,7 @@ for i in range(5):
     else:
         path = f"assets/car{i}.png"
     img = pygame.image.load(path)
-    img = pygame.transform.scale(img, (50, 80))
+    img = pygame.transform.scale(img, (60, 90))
     obstacle_images.append(img)
 
 # Charger image essence
@@ -52,9 +52,35 @@ score = 0
 lives = 3
 start_time = time.time()
 
+# Fonction pour dessiner l'arrière-plan
+def draw_background():
+    # Herbe à gauche et droite
+    pygame.draw.rect(screen, (34, 139, 34), (0, 0, 100, HEIGHT))
+    pygame.draw.rect(screen, (34, 139, 34), (WIDTH-100, 0, 100, HEIGHT))
+    
+    # Route : trois rectangles gris de la route
+    pygame.draw.rect(screen, (60, 60, 60), (100, 0, 20, HEIGHT))           # bord gauche
+    pygame.draw.rect(screen, (60, 60, 60), (WIDTH-120, 0, 20, HEIGHT))    # bord droit
+    pygame.draw.rect(screen, (100, 100, 100), (120, 0, WIDTH-240, HEIGHT))  # route centrale
+
+    # Lignes blanches continues sur les bords
+    pygame.draw.rect(screen, (255, 255, 255), (120, 0, 5, HEIGHT))
+    pygame.draw.rect(screen, (255, 255, 255), (WIDTH-125, 0, 5, HEIGHT))
+
+    # Ligne blanche discontinue au centre
+    line_width = 10
+    line_height = 30
+    gap = 20
+    center_x = WIDTH // 2
+    for y in range(0, HEIGHT, line_height + gap):
+        pygame.draw.rect(screen, (255, 255, 255), (center_x - line_width//2, y, line_width, line_height))
+
 running = True
 while running:
-    screen.fill((40, 40, 40))
+    screen.fill((0, 0, 0))
+    
+    # Dessiner l'arrière-plan
+    draw_background()
 
     # Gestion des événements
     for event in pygame.event.get():
@@ -64,17 +90,17 @@ while running:
             # Spawn obstacle voiture
             img = random.choice(obstacle_images)
             w, h = img.get_size()
-            obstacle_list.append([pygame.Rect(random.randint(0, WIDTH-w), -h, w, h), img])
+            obstacle_list.append([pygame.Rect(random.randint(120, WIDTH-120-w), -h, w, h), img])
 
             # Spawn bonus essence (1 chance sur 3)
             if random.randint(1, 3) == 1:
-                fuel_list.append(pygame.Rect(random.randint(0, WIDTH-30), -30, 30, 30))
+                fuel_list.append(pygame.Rect(random.randint(120, WIDTH-120-30), -30, 30, 30))
 
     # Contrôles
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player.left > 0:
+    if keys[pygame.K_LEFT] and player.left > 120:
         player.x -= player_speed
-    if keys[pygame.K_RIGHT] and player.right < WIDTH:
+    if keys[pygame.K_RIGHT] and player.right < WIDTH-120:
         player.x += player_speed
     if keys[pygame.K_UP] and player.top > 0:
         player.y -= player_speed
