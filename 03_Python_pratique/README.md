@@ -49,3 +49,6 @@ python main.py
 * **Progression** : tous les 30 secondes, la vitesse des obstacles augmente et un niveau supérieur est affiché.
 * **Game Over** : lorsqu’il n’y a plus de vies, le jeu s’arrête et propose deux boutons : *Rejouer* ou *Quitter*.
 * **Sons** : collision, ramassage de fuel normal ou Gold Fuel, et musique lors du ramassage du bonus spécifique.
+  
+## Lien video test jeu
+https://drive.google.com/file/d/1pkpkT4QkJ32oG6rhtFYz0li8d1AYZ1jB/view?usp=sharing
