@@ -59,80 +59,99 @@ def draw_button(text, x, y, w, h, color, hover_color):
 
 # --- Boucle principale ---
 running = True
+game_over = False
+
 while running:
     screen.fill((0,0,0))
     draw_background(screen, WIDTH, HEIGHT)
 
-    current_time = time.time()
-    elapsed_time = int(current_time - start_time)
-
-    # --- Augmentation de vitesse tous les 30s ---
-    if current_time - last_speed_increase >= 30:
-        obstacle_speed += 1
-        level += 1
-        last_speed_increase = current_time
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == SPAWN_EVENT:
-            # Spawn obstacle
-            obstacle_list.append(Obstacle(120, WIDTH-120, obstacle_speed, obstacle_images))
-            # Spawn fuel (1 chance sur 3)
-            if random.randint(1,3) == 1:
-                fuel_list.append(Fuel(120, WIDTH-120, 4, fuel_img))
-
     keys = pygame.key.get_pressed()
-    player.move(keys, 120, WIDTH-120, 0, HEIGHT)
-    player.draw(screen)
 
-    # Déplacement obstacles
-    for obs in obstacle_list[:]:
-        obs.update()
-        if obs.rect.colliderect(player.hitbox):
-            lives -= 1
-            obstacle_list.remove(obs)
-        elif obs.rect.top > HEIGHT:
-            obstacle_list.remove(obs)
-        else:
-            obs.draw(screen)
+    if not game_over:
+        current_time = time.time()
+        elapsed_time = int(current_time - start_time)
 
-    # Déplacement fuel
-    for f in fuel_list[:]:
-        f.update()
-        if f.rect.colliderect(player.hitbox):
-            score += 10
-            fuel_list.remove(f)
-        elif f.rect.top > HEIGHT:
-            fuel_list.remove(f)
-        else:
-            f.draw(screen)
+        # --- Augmentation de vitesse tous les 30s ---
+        if current_time - last_speed_increase >= 30:
+            obstacle_speed += 1
+            level += 1
+            last_speed_increase = current_time
 
-    # Texte score, vies, temps et niveau
-    screen.blit(font.render(f"Score: {score}", True, (255,255,255)), (10,10))
-    screen.blit(font.render(f"Vies: {lives}", True, (255,255,255)), (10,40))
-    screen.blit(font.render(f"Temps: {elapsed_time}s", True, (255,255,255)), (10,70))
-    screen.blit(font.render(f"Level: {level}", True, (255,255,255)), (WIDTH-120,10))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == SPAWN_EVENT:
+                obstacle_list.append(Obstacle(120, WIDTH-120, obstacle_speed, obstacle_images))
+                if random.randint(1,3) == 1:
+                    fuel_list.append(Fuel(120, WIDTH-120, 4, fuel_img))
 
-    # --- Fin du jeu ---
-    if lives <= 0:
+        # Mouvement joueur
+        player.move(keys, 120, WIDTH-120, 0, HEIGHT)
+        player.draw(screen)
+
+        # Déplacement obstacles
+        for obs in obstacle_list[:]:
+            obs.update()
+            if obs.rect.colliderect(player.hitbox):
+                lives -= 1
+                obstacle_list.remove(obs)
+            elif obs.rect.top > HEIGHT:
+                obstacle_list.remove(obs)
+            else:
+                obs.draw(screen)
+
+        # Déplacement fuel
+        for f in fuel_list[:]:
+            f.update()
+            if f.rect.colliderect(player.hitbox):
+                score += 10
+                fuel_list.remove(f)
+            elif f.rect.top > HEIGHT:
+                fuel_list.remove(f)
+            else:
+                f.draw(screen)
+
+        # Texte score, vies, temps et niveau
+        screen.blit(font.render(f"Score: {score}", True, (255,255,255)), (10,10))
+        screen.blit(font.render(f"Vies: {lives}", True, (255,255,255)), (10,40))
+        screen.blit(font.render(f"Temps: {elapsed_time}s", True, (255,255,255)), (10,70))
+        screen.blit(font.render(f"Level: {level}", True, (255,255,255)), (WIDTH-120,10))
+
+        # Vérifier Game Over
+        if lives <= 0:
+            game_over = True
+
+    else:
+        # --- Game Over ---
         screen.blit(big_font.render("GAME OVER", True, (255,50,50)), (WIDTH//2-130, HEIGHT//2-50))
-        replay = draw_button("Rejouer", WIDTH//2-100, HEIGHT//2+10, 90, 40, (0,100,200), (0,150,255))
-        quit_game = draw_button("Quitter", WIDTH//2+10, HEIGHT//2+10, 90, 40, (200,0,0), (255,50,50))
-        pygame.display.flip()
-        if replay:
-            # Reset du jeu
-            score = 0
-            lives = 3
-            level = 1
-            obstacle_speed = 5
-            obstacle_list.clear()
-            fuel_list.clear()
-            start_time = time.time()
-            last_speed_increase = start_time
-        elif quit_game:
-            running = False
-        continue  # skip le reste pour ne pas bouger les obstacles
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+                # Vérifier Rejouer
+                if pygame.Rect(WIDTH//2-100, HEIGHT//2+10, 90, 40).collidepoint(mouse_pos):
+                    # Reset complet
+                    score = 0
+                    lives = 3
+                    level = 1
+                    obstacle_speed = 5
+                    obstacle_list.clear()
+                    fuel_list.clear()
+                    start_time = time.time()
+                    last_speed_increase = start_time
+                    game_over = False
+                # Vérifier Quitter
+                elif pygame.Rect(WIDTH//2+10, HEIGHT//2+10, 90, 40).collidepoint(mouse_pos):
+                    running = False
+
+        # Dessiner boutons (juste visuel)
+        pygame.draw.rect(screen, (0,100,200), (WIDTH//2-100, HEIGHT//2+10, 90, 40))
+        screen.blit(font.render("Rejouer", True, (255,255,255)), (WIDTH//2-100+10, HEIGHT//2+15))
+        pygame.draw.rect(screen, (200,0,0), (WIDTH//2+10, HEIGHT//2+10, 90, 40))
+        screen.blit(font.render("Quitter", True, (255,255,255)), (WIDTH//2+10+10, HEIGHT//2+15))
+
 
     pygame.display.flip()
     clock.tick(60)
